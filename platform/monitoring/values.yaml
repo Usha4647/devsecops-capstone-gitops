@@ -1,0 +1,28 @@
+# kube-prometheus-stack sized for a lab. Access Grafana via:
+#   kubectl -n monitoring port-forward svc/monitoring-grafana 3001:80
+alertmanager:
+  enabled: false
+grafana:
+  admin:
+    existingSecret: grafana-admin       # created by scripts/03-install-platform.sh
+    userKey: admin-user
+    passwordKey: admin-password
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+prometheus:
+  prometheusSpec:
+    # Discover ServiceMonitors from every namespace, not only this Helm release.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    retention: 2d
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { memory: 2Gi }
+# KIND's control-plane components are not reachable on their default ports.
+kubeEtcd: { enabled: false }
+kubeControllerManager: { enabled: false }
+kubeScheduler: { enabled: false }
+kubeProxy: { enabled: false }

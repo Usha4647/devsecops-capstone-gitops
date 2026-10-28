@@ -1,0 +1,114 @@
+# Base values shared by every environment. Environment files (values-dev.yaml,
+# values-demo.yaml) override only what differs. CI updates image.tag in the
+# environment file - never in this file.
+
+replicaCount: 2
+
+image:
+  repository: your-dockerhub-user/student-task-manager
+  tag: ""            # required: set per environment (commit SHA). "latest" is rejected.
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+containerPort: 3000
+extraEnv: []
+
+service:
+  type: ClusterIP       # NodePort in values-demo.yaml so KIND can expose it on the host
+  port: 80
+  nodePort: null
+
+resources:
+  requests: { cpu: 100m, memory: 96Mi }
+  limits: { cpu: 500m, memory: 256Mi }
+
+probes:
+  startup: { path: /health, failureThreshold: 30, periodSeconds: 2 }
+  liveness: { path: /health, periodSeconds: 10 }
+  readiness: { path: /ready, periodSeconds: 5 }
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile: { type: RuntimeDefault }
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: { drop: ["ALL"] }
+
+serviceAccount:
+  create: true
+  automount: false
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Spread replicas across the two KIND worker nodes when possible.
+topologySpread:
+  enabled: true
+
+networkPolicy:
+  enabled: true
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: tasks.example.test
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# CPU-based scaling with the built-in HPA. Use EITHER this OR keda, not both.
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+# Event/metric-driven scaling with KEDA (requires KEDA + Prometheus installed).
+keda:
+  enabled: false
+  minReplicaCount: 1     # keep >=1: this is an HTTP service; 0 would drop requests
+  maxReplicaCount: 6
+  pollingInterval: 15
+  cooldownPeriod: 60
+  prometheus:
+    serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+    # Requests/second across all pods; KEDA divides by threshold to pick the replica count.
+    query: sum(rate(http_requests_total{namespace="capstone",service="student-task-manager"}[1m]))
+    threshold: "5"
+  # Optional second trigger: also scale on CPU.
+  cpu:
+    enabled: true
+    utilization: "70"
+
+metrics:
+  serviceMonitor:
+    enabled: false        # requires the Prometheus Operator CRDs (kube-prometheus-stack)
+    interval: 15s
+    labels: {}
+  grafanaDashboard:
+    enabled: false        # ConfigMap picked up by the Grafana sidecar
+
+# Optional in-cluster PostgreSQL for the persistence lab. The password is NEVER in
+# Git: create the Secret first (scripts/06-deploy-app.sh does this).
+postgres:
+  enabled: false
+  image: postgres:17-alpine
+  database: tasks
+  username: tasks
+  existingSecret: student-task-manager-db   # must contain key: password
+  storage: 1Gi
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }

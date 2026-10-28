@@ -1,0 +1,36 @@
+{{- if .Values.networkPolicy.enabled }}
+# Zero-trust default for the app pods: only the HTTP port is reachable, and the
+# pods may only talk to DNS and (if enabled) their own PostgreSQL.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "stm.fullname" . }}
+  labels:
+    {{- include "stm.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "stm.selectorLabels" . | nindent 6 }}
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - ports:
+        - port: {{ .Values.containerPort }}
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    {{- if .Values.postgres.enabled }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "stm.postgresName" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+      ports:
+        - { port: 5432, protocol: TCP }
+    {{- end }}
+{{- end }}

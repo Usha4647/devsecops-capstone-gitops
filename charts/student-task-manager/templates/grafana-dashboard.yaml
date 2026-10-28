@@ -1,0 +1,12 @@
+{{- if .Values.metrics.grafanaDashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "stm.fullname" . }}-dashboard
+  labels:
+    {{- include "stm.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+data:
+  student-task-manager.json: |-
+{{ .Files.Get "dashboards/student-task-manager.json" | indent 4 }}
+{{- end }}

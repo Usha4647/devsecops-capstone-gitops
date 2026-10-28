@@ -1,0 +1,11 @@
+# Local "helm install" on KIND without the platform stack (no KEDA/Prometheus CRDs needed).
+replicaCount: 1
+image:
+  repository: student-task-manager
+  tag: "local"
+  pullPolicy: IfNotPresent
+service:
+  type: NodePort
+  nodePort: 30080
+podDisruptionBudget:
+  enabled: false

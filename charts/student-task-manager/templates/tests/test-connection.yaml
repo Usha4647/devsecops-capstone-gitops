@@ -1,0 +1,27 @@
+# "helm test <release>" runs this pod; it must reach /ready through the Service.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "stm.fullname" . }}-test
+  labels:
+    {{- include "stm.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: wget
+      image: busybox:1.37
+      command: ["wget", "-qO-", "http://{{ include "stm.fullname" . }}:{{ .Values.service.port }}/ready"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: ["ALL"] }
+      resources:
+        limits: { cpu: 100m, memory: 32Mi }

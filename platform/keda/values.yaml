@@ -1,0 +1,7 @@
+resources:
+  operator:
+    requests: { cpu: 50m, memory: 100Mi }
+    limits: { memory: 500Mi }
+  metricServer:
+    requests: { cpu: 50m, memory: 100Mi }
+    limits: { memory: 500Mi }

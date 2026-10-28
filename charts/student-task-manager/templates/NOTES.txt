@@ -1,0 +1,10 @@
+Student Task Manager {{ .Values.image.tag }} deployed to namespace {{ .Release.Namespace }}.
+
+{{- if eq .Values.service.type "NodePort" }}
+On the EC2 host (KIND maps NodePort {{ .Values.service.nodePort }} to host port 8080):
+  curl http://localhost:8080/version
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "stm.fullname" . }} 8080:{{ .Values.service.port }}
+  curl http://localhost:8080/version
+{{- end }}
+Run the in-cluster check: helm test {{ .Release.Name }} -n {{ .Release.Namespace }}

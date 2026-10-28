@@ -1,0 +1,20 @@
+# A dedicated Argo CD project limits blast radius: this project may only deploy
+# from the capstone GitOps repo into the capstone namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: capstone
+  namespace: argocd
+spec:
+  description: DevSecOps capstone application
+  sourceRepos:
+    - https://github.com/ravinadh777/devsecops-capstone-gitops.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: capstone
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ResourceQuota

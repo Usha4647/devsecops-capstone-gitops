@@ -1,0 +1,12 @@
+# Argo CD for a single-node lab. Access via: kubectl -n argocd port-forward svc/argocd-server 8443:443
+dex:
+  enabled: false
+notifications:
+  enabled: false
+configs:
+  params:
+    # Poll Git every 60s (no inbound webhook needed, so nothing is exposed).
+    timeout.reconciliation: 60s
+server:
+  service:
+    type: ClusterIP

@@ -1,0 +1,45 @@
+name: Validate chart
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install kubeconform
+        run: |
+          curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin kubeconform
+      - name: Lint and schema-validate every values combination
+        run: |
+          set -euo pipefail
+          chart=charts/student-task-manager
+          schemas=(-schema-location default
+                   -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json')
+          for env in dev demo; do
+            echo "== ${env}"
+            # CI writes a real SHA; validate with a stand-in when the placeholder is present.
+            helm lint "${chart}" -f "${chart}/values.yaml" -f "${chart}/values-${env}.yaml" --set image.tag=validate --strict
+            helm template stm "${chart}" -n capstone -f "${chart}/values-${env}.yaml" --set image.tag=validate \
+              | kubeconform -strict -summary "${schemas[@]}"
+          done
+      - name: Guard rails must reject unsafe values
+        run: |
+          chart=charts/student-task-manager
+          if helm template x "${chart}" --set image.tag=latest >/dev/null 2>&1; then
+            echo "::error::chart accepted image.tag=latest"; exit 1
+          fi
+          if helm template x "${chart}" --set image.tag=abc1234 --set autoscaling.enabled=true --set keda.enabled=true >/dev/null 2>&1; then
+            echo "::error::chart accepted HPA and KEDA together"; exit 1
+          fi
+          echo "Guard rails OK"
