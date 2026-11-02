@@ -1,0 +1,15 @@
+# Headlamp: the official successor to the archived Kubernetes Dashboard.
+# Deployed by Argo CD (apps/headlamp.yaml). Reached at http://<EC2-IP>:4466
+service:
+  type: NodePort
+  nodePort: 30466
+  # Set explicitly: the chart renders this field empty by default, and the live Service
+  # gets "Cluster", which can make Argo CD report a permanent difference.
+  externalTrafficPolicy: Cluster
+# Headlamp acts with the token each user logs in with, so its own service
+# account needs no cluster-admin rights (least privilege).
+clusterRoleBinding:
+  create: false
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { memory: 256Mi }
