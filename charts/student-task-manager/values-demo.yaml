@@ -1,8 +1,8 @@
 # Argo CD-managed demo environment on KIND (full platform installed).
 # CI rewrites image.repository and image.tag in THIS file after a green pipeline.
 image:
-  repository: ravinadh/student-task-manager
-  tag: "4942f6a"
+  repository: usha4647/student-task-manager
+  tag: "b359764"
 service:
   type: NodePort
   nodePort: 30080 # mapped to EC2 host port 8080 by infra/kind/kind-config.yaml
